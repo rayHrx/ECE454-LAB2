@@ -14,11 +14,15 @@
  * Note1: White pixels RGB(255,255,255) are treated as background. Object in the image refers to non-white pixels.
  * Note2: You can assume the object will never be moved off the screen
  **********************************************************************************************************************/
+unsigned char *processMoveUp(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
+unsigned char *processMoveRight(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
+unsigned char *processMoveDown(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
+unsigned char *processMoveLeft(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
 static unsigned char * rendered_frame = NULL;
 unsigned char temp[3];
 unsigned char *processMoveUp(unsigned char *buffer_frame, unsigned width, unsigned height, int offset) {
     if (offset < 0){
-        return processMoveDownReference(buffer_frame, width, height, offset * -1);
+        return processMoveDown(buffer_frame, width, height, offset * -1);
     }
     int top = width - offset;
     int l = 0;
@@ -54,7 +58,7 @@ unsigned char *processMoveUp(unsigned char *buffer_frame, unsigned width, unsign
 unsigned char *processMoveRight(unsigned char *buffer_frame, unsigned width, unsigned height, int offset) {
         // handle negative offsets
     if (offset < 0){
-        return processMoveLeftReference(buffer_frame, width, height, offset * -1);
+        return processMoveLeft(buffer_frame, width, height, offset * -1);
     }
 
     int position_rendered_frame = (height * width) * 3 + offset * 3 - 1;
@@ -93,30 +97,27 @@ unsigned char *processMoveRight(unsigned char *buffer_frame, unsigned width, uns
 unsigned char *processMoveDown(unsigned char *buffer_frame, unsigned width, unsigned height, int offset) {
        // handle negative offsets
     if (offset < 0){
-        return processMoveUpReference(buffer_frame, width, height, offset * -1);
+        return processMoveUp(buffer_frame, width, height, offset * -1);
+    }
+    
+    unsigned char* src = buffer_frame + width * height * 3 - offset * width * 3;
+    unsigned char* dest = buffer_frame + width * height * 3;
+    int step = width * 3, l = 0, top = height - offset;
+    while(l < top){
+        dest -= step;
+        src -= step;
+        memcpy(dest,src,width*3);
+        l++;
+    }
+    l = 0;
+    top = offset;
+    src = buffer_frame;
+    while(l < top){
+        for(int i = 0; i < step; i++) *(src + i) = 225;
+        l++;
+        src += step; 
     }
 
-    int position_rendered_frame = height * width * 3 - 1;
-    int position_buffer_frame = height * width * 3 - offset * width * 3 - 1;
-    // store shifted pixels to temporary buffer
-    for (int row = 0; row < height - offset; row++) {
-        for (int column = 0; column < width; column++) {
-            position_rendered_frame -= 3;
-            position_buffer_frame -= 3;
-            memcpy(buffer_frame + position_rendered_frame, buffer_frame + position_buffer_frame, 3);
-        }
-    }
-
-    // fill left over pixels with white pixels
-    position_rendered_frame = -3;
-     for (int row = 0; row < offset; row++) {
-        for (int column = 0; column < width; column++) {
-            position_rendered_frame +=3;
-            buffer_frame[position_rendered_frame] = 255;
-            buffer_frame[position_rendered_frame + 1] = 255;
-            buffer_frame[position_rendered_frame + 2] = 255;
-        }
-    }
     return buffer_frame;
 }
 
@@ -132,7 +133,7 @@ unsigned char *processMoveDown(unsigned char *buffer_frame, unsigned width, unsi
 unsigned char *processMoveLeft(unsigned char *buffer_frame, unsigned width, unsigned height, int offset) {
    // handle negative offsets
     if (offset < 0){
-        return processMoveRightReference(buffer_frame, width, height, offset * -1);
+        return processMoveRight(buffer_frame, width, height, offset * -1);
     }
 
     int top = width - offset;
