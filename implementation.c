@@ -20,19 +20,17 @@ unsigned char *processMoveUp(unsigned char *buffer_frame, unsigned width, unsign
     if (offset < 0){
         return processMoveDownReference(buffer_frame, width, height, offset * -1);
     }
-       
-    int top = height - offset;
-    int position_rendered_frame = -3;
-    int position_buffer_frame = offset * width * 3 - 3;
-            // store shifted pixels to temporary buffer
-    for (int row = 0; row < top; row++) {
-        for (int column = 0; column < width; column++) {
-            position_rendered_frame += 3;
-            position_buffer_frame += 3;
-            memcpy(buffer_frame + position_rendered_frame, buffer_frame + position_buffer_frame, 3);
-        }
+    int top = width - offset;
+    int l = 0;
+    unsigned char* d = buffer_frame - width * 3;
+    unsigned char* s = buffer_frame + offset * width * 3 - width * 3;
+    while(l < top){
+        d += width * 3;
+        s += width * 3;
+        memcpy(d,s,width * 3);
+        l++;
     }
-    position_rendered_frame = top * 3 - 3;
+    int position_rendered_frame = top * 3 - 3;
     for (int row = top; row < height; row++) {
         for (int column = 0; column < width; column++) {
             position_rendered_frame += 3;
