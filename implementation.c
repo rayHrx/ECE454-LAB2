@@ -15,17 +15,39 @@
  * Note2: You can assume the object will never be moved off the screen
  **********************************************************************************************************************/
 
-//unsigned int r_matrix[8] = {
-//    {1,0,0,1},
-//    {-1,0,0,1},
-//    {1,0,0,-1},
-//    {-1,0,0,-1},
-//    {0,-1,-1,0},
-//    {0,-1,1,0},
-//    {0,1,1,0},
-//    {0,1,-1,0}
-//}
-
+    int getTranslatedCoords[8][3] = {
+        {1,1,0},
+        {-1,1,0},
+        {1,-1,0},
+        {-1,-1,0},
+        {-1,-1,1},
+        {-1,1,1},
+        {1,1,1},
+        {1,-1,1}
+    };
+    
+    struct direct_info{
+        int outer_step;
+        int inner_step;
+        unsigned char* start;
+    };
+    
+    void print(unsigned char* matrix, int width, int height)
+{
+    int i, j;
+    unsigned char* start;
+    for (i = 0; i < height; ++i)
+    {
+        start = matrix + i*10*3;
+        for (j = 0; j < width; ++j){
+            start = matrix + i*width*3 + j*3;
+            printf("%d ",*start);
+            printf("%d ",*(start+1));
+            printf("%d ",*(start+2));
+        }
+        printf("\n");
+    }
+}
 unsigned char *processMoveUp(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
 unsigned char *processMoveRight(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
 unsigned char *processMoveDown(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
@@ -197,122 +219,6 @@ unsigned char *processMoveLeft(unsigned char *buffer_frame, unsigned width, unsi
  * @return - pointer pointing a buffer storing a modified 24-bit bitmap image
  * Note: You can assume the frame will always be square and you will be rotating the entire image
  **********************************************************************************************************************/
-unsigned char *processRotateCW(unsigned char *buffer_frame, unsigned width, unsigned height,
-                               int rotate_iteration) {
-    int c = 0; 
-     // handle negative offsets
-    if (rotate_iteration < 0){
-        c = 4 - abs(rotate_iteration)%4;
-    }else{
-        c = rotate_iteration % 4;
-    }
-
-    int top = 0;
-    int right = 0;
-    int bottom = 0;
-    int left = 0;
-    int x = 0;
-    int y = 0;
-    
-   
-    if(c == 1){
-         for (int x = 0; x < width / 2; x++){ 
-            for (int y = x; y < height -x -1; y++){             
-                //temp is top//
-                top = x * width * 3 + y * 3;
-                right = y * width * 3 + (width - x - 1) * 3;
-                bottom = (width -1 -x ) * width * 3 + (width - y - 1) * 3;
-                left = (width - 1 -y) * width * 3 + x * 3;
-                memcpy(temp, buffer_frame + top, 3);
-                memcpy(buffer_frame + top, buffer_frame + left, 3);
-                memcpy(buffer_frame + left, buffer_frame + bottom, 3);
-                memcpy(buffer_frame + bottom, buffer_frame + right, 3);
-                memcpy(buffer_frame + right, temp, 3);
-            } 
-        }        
-    }else if(c == 2 ){
-        for (int x = 0; x < width / 2; x++){ 
-            for (int y = x; y < height -x -1; y++){             
-                //temp is top//
-                top = x * width * 3 + y * 3;
-                right = y * width * 3 + (width - x - 1) * 3;
-                bottom = (width -1 -x ) * width * 3 + (width - y - 1) * 3;
-                left = (width - 1 -y) * width * 3 + x * 3;
-                memcpy(temp, buffer_frame + top, 3);
-                memcpy(buffer_frame + top, buffer_frame + bottom, 3);
-                memcpy(buffer_frame + bottom, temp, 3);
-                memcpy(temp, buffer_frame + right, 3);
-                memcpy(buffer_frame + right, buffer_frame + left, 3);
-                memcpy(buffer_frame + left, temp, 3);                      
-            } 
-        }  
-    }else if(c == 3){
-        for (int x = 0; x < width / 2; x++){ 
-            for (int y = x; y < height -x -1; y++){             
-                //temp is top//
-                top = x * width * 3 + y * 3;
-                right = y * width * 3 + (width - x - 1) * 3;
-                bottom = (width -1 -x ) * width * 3 + (width - y - 1) * 3;
-                left = (width - 1 -y) * width * 3 + x * 3;
-                memcpy(temp, buffer_frame + top, 3);
-                memcpy(buffer_frame + top, buffer_frame + right, 3);
-                memcpy(buffer_frame + right, buffer_frame + bottom, 3);
-                memcpy(buffer_frame + bottom, buffer_frame + left, 3);
-                memcpy(buffer_frame + left, temp, 3);
-            } 
-        }  
-    }
-    return buffer_frame;
-}
-
-/***********************************************************************************************************************
- * @param buffer_frame - pointer pointing to a buffer storing the imported 24-bit bitmap image
- * @param width - width of the imported 24-bit bitmap image
- * @param height - height of the imported 24-bit bitmap image
- * @param rotate_iteration - rotate object inside frame buffer counter clockwise by 90 degrees, <iteration> times
- * @return - pointer pointing a buffer storing a modified 24-bit bitmap image
- * Note: You can assume the frame will always be square and you will be rotating the entire image
- **********************************************************************************************************************/
-unsigned char *processRotateCCW(unsigned char *buffer_frame, unsigned width, unsigned height,
-                                int rotate_iteration) {
-    int c = 0;
-    if (rotate_iteration < 0){
-        c = abs(rotate_iteration)%4;
-        buffer_frame = processRotateCW(buffer_frame, width, height, c);
-    } else {
-        c = 4 - abs(rotate_iteration)%4;
-        buffer_frame = processRotateCW(buffer_frame, width, height, c);
-    }
-    return buffer_frame;
-}
-
-/***********************************************************************************************************************
- * @param buffer_frame - pointer pointing to a buffer storing the imported 24-bit bitmap image
- * @param width - width of the imported 24-bit bitmap image
- * @param height - height of the imported 24-bit bitmap image
- * @param _unused - this field is unused
- * @return
- **********************************************************************************************************************/
-unsigned char *processMirrorX(unsigned char *buffer_frame, unsigned int width, unsigned int height, int _unused) {
-
-    int start = 0;
-    int end = height - 1;
-    unsigned char* low;
-    unsigned char* high;
-    unsigned char t[width * 3];
-    while(start < end){
-        low = buffer_frame + start * width * 3;
-        high = buffer_frame + end * width * 3;
-        memcpy(t, low, width * 3);
-        memcpy(low, high, width * 3);
-        memcpy(high, t, width * 3);
-        start ++;
-        end --;
-    }
-
-    return buffer_frame;
-}
-
 /***********************************************************************************************************************
  * @param buffer_frame - pointer pointing to a buffer storing the imported 24-bit bitmap image
  * @param width - width of the imported 24-bit bitmap image
@@ -365,52 +271,14 @@ void print_team_info(){
  ***********************************************************************************************************************
  *
  **********************************************************************************************************************/
-void doTranslation(unsigned char *frame_buffer, unsigned char *rendered_frame, unsigned width, unsigned height, unsigned int orientation, int translated_x, int translated_y){
+
+void doTranslation(unsigned char *frame_buffer, unsigned char *rendered_frame, unsigned width, unsigned height, unsigned int orientation, int translated_x, int translated_y, struct direct_info directs[]){
 
     int outer_step = 0, inner_step = 0, outer = 0, inner = 0;
     unsigned char* start, current;
-    switch(orientation){
-        case(0):
-            outer_step = width * 3;
-            inner_step = 3;
-            start = rendered_frame;
-            break;
-        case(1):
-            outer_step = width * 3;
-            inner_step = -3;
-            start = rendered_frame + width * 3 - 3;
-            break;
-        case(2):
-            outer_step = -width * 3;
-            inner_step = 3;
-            start = rendered_frame + (height - 1) * width * 3;
-            break;
-        case(3):
-            outer_step = -width * 3;
-            inner_step = -3;
-            start = rendered_frame + (height * width * 3) - 3;
-            break;
-        case(4):
-            outer_step = 3;
-            inner_step = width * 3;
-            start = rendered_frame;
-            break;
-        case(5):
-            outer_step = -3;
-            inner_step = width * 3;
-            start = rendered_frame + width * 3 - 3;
-            break;
-        case(6):
-            outer_step = -3;
-            inner_step = -width * 3;
-            start = rendered_frame + (height * width * 3) - 3;
-            break;
-        case(7):
-            outer_step = 3;
-            inner_step = -width * 3;
-            start = rendered_frame + (height - 1) * width * 3;
-            break;       
-    }
+    start = directs[orientation].start;
+    outer_step = directs[orientation].outer_step;
+    inner_step = directs[orientation].inner_step;
             for(int i = 0; i<height; i++){
             unsigned char* current = start + i * outer_step;
             for(int j = 0 ; j<width; j++){
@@ -429,27 +297,54 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
 //                  23       32        01          10          13       31         20          02
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
-unsigned int orientation = 0;
-unsigned int states[8][5] = {
-    {5,7,3,2,1},
-    {6,4,2,3,0},
-    {4,6,1,0,3},
-    {7,5,0,1,2},
-    {1,2,6,7,5},
-    {3,0,7,6,4},
-    {2,1,4,5,7},
-    {0,3,5,4,6}
-    
-};
+
+    int x_d = width/2, y_d = height/2;
+    unsigned int orientation = 0;
+    unsigned int states[8][5] = {
+        {5,7,3,2,1},
+        {6,4,2,3,0},
+        {4,6,1,0,3},
+        {7,5,0,1,2},
+        {1,2,6,7,5},
+        {3,0,7,6,4},
+        {2,1,4,5,7},
+        {0,3,5,4,6}
+        };
+       
 //X direction move multiply with 0,2
 //Y direction move multiply with 1,3
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
-register int translated_x = 0;
-register int translated_y = 0;
-unsigned char* rendered_frame = allocateFrame(width, height); 
+    register int translated_x = 0;
+    register int translated_y = 0;
+    unsigned char* rendered_frame = allocateFrame(width, height); 
+    
+      struct direct_info directions[8];
+          directions[0].outer_step = width * 3;
+            directions[0].inner_step = 3;
+            directions[0].start = rendered_frame;
+            directions[1].outer_step = width * 3;
+            directions[1].inner_step = -3;
+            directions[1].start = rendered_frame + width * 3 - 3;
+            directions[2].outer_step = -width * 3;
+            directions[2].inner_step = 3;
+            directions[2].start = rendered_frame + (height - 1) * width * 3;
+            directions[3].outer_step = -width * 3;
+            directions[3].inner_step = -3;
+            directions[3].start = rendered_frame + (height * width * 3) - 3;
+            directions[4].outer_step = 3;
+            directions[4].inner_step = width * 3;
+            directions[4].start = rendered_frame;
+            directions[5].outer_step = -3;
+            directions[5].inner_step = width * 3;
+            directions[5].start = rendered_frame + width * 3 - 3;
+            directions[6].outer_step = -3;
+            directions[6].inner_step = -width * 3;
+            directions[6].start = rendered_frame + (height * width * 3) - 3;
+            directions[7].outer_step = 3;
+            directions[7].inner_step = -width * 3;
+            directions[7].start = rendered_frame + (height - 1) * width * 3; 
     int processed_frames = 0;
-//    printf("%d\n",sensor_values_count);
         for (int sensorValueIdx = 0; sensorValueIdx < sensor_values_count; sensorValueIdx++) {
              int value = sensor_values[sensorValueIdx].value;
             if(!strcmp(sensor_values[sensorValueIdx].key, "W")){
@@ -489,8 +384,8 @@ unsigned char* rendered_frame = allocateFrame(width, height);
             }            
         processed_frames += 1;
         if (processed_frames % 25 == 0) {
-            doTranslation(frame_buffer, rendered_frame, height, width, orientation, translated_x, translated_y);
-            verifyFrame(rendered_frame, width, height, grading_mode);            
+            doTranslation(frame_buffer, rendered_frame, height, width, orientation, translated_x, translated_y, directions);
+            verifyFrame(rendered_frame, width, height, grading_mode);    
         }
     }
     return;
