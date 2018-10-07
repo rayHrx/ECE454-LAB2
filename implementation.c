@@ -25,7 +25,34 @@
 //    {0,1,1,0},
 //    {0,1,-1,0}
 //}
-
+    //0             1            2
+    //invert x      invert y     swap flag
+    int getTranslatedCoords[8][3] = {
+        {1,1,0},
+        {-1,1,0},
+        {1,-1,0},
+        {-1,-1,0},
+        {-1,-1,1},
+        {-1,1,1},
+        {1,1,1},
+        {1,-1,1}
+    };
+    void print(unsigned char* matrix, int width, int height)
+{
+    int i, j;
+    unsigned char* start;
+    for (i = 0; i < height; ++i)
+    {
+        start = matrix + i*10*3;
+        for (j = 0; j < width; ++j){
+            start = matrix + i*width*3 + j*3;
+            printf("%d ",*start);
+            printf("%d ",*(start+1));
+            printf("%d ",*(start+2));
+        }
+        printf("\n");
+    }
+}
 unsigned char *processMoveUp(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
 unsigned char *processMoveRight(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
 unsigned char *processMoveDown(unsigned char *buffer_frame, unsigned width, unsigned height, int offset);
@@ -366,61 +393,87 @@ void print_team_info(){
  *
  **********************************************************************************************************************/
 void doTranslation(unsigned char *frame_buffer, unsigned char *rendered_frame, unsigned width, unsigned height, unsigned int orientation, int translated_x, int translated_y){
-
-    int outer_step = 0, inner_step = 0, outer = 0, inner = 0;
-    unsigned char* start, current;
-    switch(orientation){
-        case(0):
-            outer_step = width * 3;
-            inner_step = 3;
-            start = rendered_frame;
-            break;
-        case(1):
-            outer_step = width * 3;
-            inner_step = -3;
-            start = rendered_frame + width * 3 - 3;
-            break;
-        case(2):
-            outer_step = -width * 3;
-            inner_step = 3;
-            start = rendered_frame + (height - 1) * width * 3;
-            break;
-        case(3):
-            outer_step = -width * 3;
-            inner_step = -3;
-            start = rendered_frame + (height * width * 3) - 3;
-            break;
-        case(4):
-            outer_step = 3;
-            inner_step = width * 3;
-            start = rendered_frame;
-            break;
-        case(5):
-            outer_step = -3;
-            inner_step = width * 3;
-            start = rendered_frame + width * 3 - 3;
-            break;
-        case(6):
-            outer_step = -3;
-            inner_step = -width * 3;
-            start = rendered_frame + (height * width * 3) - 3;
-            break;
-        case(7):
-            outer_step = 3;
-            inner_step = -width * 3;
-            start = rendered_frame + (height - 1) * width * 3;
-            break;       
-    }
-            for(int i = 0; i<height; i++){
-            unsigned char* current = start + i * outer_step;
-            for(int j = 0 ; j<width; j++){
-            unsigned char* pos = current + j * inner_step;
-                memcpy(pos, frame_buffer + i * width * 3 + j * 3, 3);
-            } 
+    int signed_width = (int)width, signed_height = (int)height, x_start = -(signed_width/2);
+    int frame_t_x = x_start, frame_t_y = (signed_height/2), x_bound = (signed_width/2), y_bound = -(signed_height/2);
+    int _x = 0, _y = 0, ori_y = 0,temp = 0 , x_c = 0, y_c =0, buffer_x = 0, buffer_y = 0;
+    bool swap = false;
+    x_c = getTranslatedCoords[orientation][0];
+    y_c = getTranslatedCoords[orientation][1];
+    swap = (getTranslatedCoords[orientation][2] == 1)?true:false;
+    for(; frame_t_y > y_bound; --frame_t_y){
+        for(frame_t_x = x_start; frame_t_x < x_bound; ++frame_t_x){
+            //Change sign first
+            _x = x_c * frame_t_x;
+            _y = y_c * frame_t_y;
+            //Need to plus 1 or minus one
+            //Because x has one less positive number
+            //And y has one less negative number
+            _x = (x_c < 0)?(_x - 1):_x;
+            _y = (y_c < 0)?(_y + 1):_y;
+            //Need to minus x by one and plus y by one for the similar reason
+            if(swap){
+                temp = _x;
+                _x = _y;
+                _y = temp;
+                _x--;
+                _y++;
+            }
+            //Add the translate amount//
+            _x += translated_x;
+            _y += translated_y;
+            //Translate to array coordinate
+            _y = -_y + (int)height/2;
+            _x += x_bound;
+            
+            buffer_x = frame_t_x + x_bound;
+            buffer_y = -frame_t_y + (int)height/2;
+            if(_x >= 0 && _x < width && _y >= 0 && _y < height){
+                memcpy(rendered_frame + _y * width * 3 + _x * 3, frame_buffer + buffer_y * width * 3 + buffer_x * 3 ,3);
+            }
         }
-    processMoveUp(rendered_frame,height,width,translated_y);
-    processMoveRight(rendered_frame,height,width,translated_x);
-    return;
+    }
+    
+}
+void erase(unsigned char *rendered_frame, unsigned width, unsigned height, unsigned int orientation, int translated_x, int translated_y){
+ int signed_width = (int)width, signed_height = (int)height;
+    int frame_t_x = -(int)((int)signed_width/(int)2), frame_t_y = (int)((int)signed_height/(int)2), x_bound = (int)((int)signed_width/(int)2), y_bound = -(int)((int)signed_height/(int)2);
+    int _x = 0, _y = 0, ori_y = 0,temp = 0 , x_c = 0, y_c =0, buffer_x = 0, buffer_y = 0;
+    bool swap = false;
+    x_c = getTranslatedCoords[orientation][0];
+    y_c = getTranslatedCoords[orientation][1];
+    swap = (getTranslatedCoords[orientation][2] == 1)?true:false;
+    for(; frame_t_y > y_bound; --frame_t_y){
+        for(frame_t_x = -(int)((int)signed_width/(int)2); frame_t_x < x_bound; ++frame_t_x){
+            //Change sign first
+            _x = x_c * frame_t_x;
+            _y = y_c * frame_t_y;
+            //Need to plus 1 or minus one
+            //Because x has one less positive number
+            //And y has one less negative number
+            _x = (x_c < 0)?(_x - 1):_x;
+            _y = (y_c < 0)?(_y + 1):_y;
+            //Need to minus x by one and plus y by one for the similar reason
+            if(swap){
+                temp = _x;
+                _x = _y;
+                _y = temp;
+                _x--;
+                _y++;
+            }
+            //Add the translate amount//
+            _x += translated_x;
+            _y += translated_y;
+            //Translate to array coordinate
+            _y = -_y + (int)height/2;
+            _x += x_bound;
+            
+            buffer_x = frame_t_x + x_bound;
+            buffer_y = -frame_t_y + (int)height/2;
+            if(_x >= 0 && _x < width && _y >= 0 && _y < height){
+                memset(rendered_frame + _y * width * 3 + _x * 3,255,3);
+            }
+        }
+    }
 }
 void implementation_driver(struct kv *sensor_values, int sensor_values_count, unsigned char *frame_buffer,
                            unsigned int width, unsigned int height, bool grading_mode) {
@@ -429,25 +482,27 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
 //                  23       32        01          10          13       31         20          02
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
-unsigned int orientation = 0;
-unsigned int states[8][5] = {
-    {5,7,3,2,1},
-    {6,4,2,3,0},
-    {4,6,1,0,3},
-    {7,5,0,1,2},
-    {1,2,6,7,5},
-    {3,0,7,6,4},
-    {2,1,4,5,7},
-    {0,3,5,4,6}
-    
-};
+    int x_d = width/2, y_d = height/2;
+    unsigned int orientation = 0;
+    unsigned int states[8][5] = {
+        {5,7,3,2,1},
+        {6,4,2,3,0},
+        {4,6,1,0,3},
+        {7,5,0,1,2},
+        {1,2,6,7,5},
+        {3,0,7,6,4},
+        {2,1,4,5,7},
+        {0,3,5,4,6}
+        };
+
 //X direction move multiply with 0,2
 //Y direction move multiply with 1,3
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
-register int translated_x = 0;
-register int translated_y = 0;
-unsigned char* rendered_frame = allocateFrame(width, height); 
+    register int translated_x = 0;
+    register int translated_y = 0;
+    unsigned char* rendered_frame = allocateFrame(width, height); 
+    memset(rendered_frame,0xff,width * height * 3);
     int processed_frames = 0;
 //    printf("%d\n",sensor_values_count);
         for (int sensorValueIdx = 0; sensorValueIdx < sensor_values_count; sensorValueIdx++) {
@@ -490,7 +545,8 @@ unsigned char* rendered_frame = allocateFrame(width, height);
         processed_frames += 1;
         if (processed_frames % 25 == 0) {
             doTranslation(frame_buffer, rendered_frame, height, width, orientation, translated_x, translated_y);
-            verifyFrame(rendered_frame, width, height, grading_mode);            
+            verifyFrame(rendered_frame, width, height, grading_mode);    
+            memset(rendered_frame,0xff,width * height * 3);
         }
     }
     return;
