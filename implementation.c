@@ -26,6 +26,16 @@
         {1,1,1},
         {1,-1,1}
     };
+    int itr_dir[8][3] = {
+        {1,1,1},
+        {-1,1,1},
+        {1,-1,1},
+        {-1,-1,1},
+        {1,1,0},
+        {-1,1,0},
+        {-1,-1,0},
+        {1,-1,0}
+    };
 /***********************************************************************************************************************
  * @param buffer_frame - pointer pointing to a buffer storing the imported 24-bit bitmap image
  * @param width - width of the imported 24-bit bitmap image
@@ -78,17 +88,17 @@ void print_team_info(){
  ***********************************************************************************************************************
  *
  **********************************************************************************************************************/
-void doTranslation(unsigned char *frame_buffer, unsigned char *rendered_frame, unsigned width, unsigned height, unsigned int orientation, 
-int translated_x, int translated_y,int itr_dir[][3], int* x_l, int* x_h,int* y_l, int* y_h){
+void doTranslation(unsigned char *frame_buffer, unsigned char *rendered_frame, unsigned width, unsigned height, unsigned int orientation,
+int translated_x, int translated_y){
     int signed_width = (int)width, signed_height = (int)height;
     int ref_x = -(signed_width/2), ref_y = (signed_height/2), c_x = 0, c_y = 0, step_x = 0, step_y = 0;
     int x_min = signed_width, x_max = 0, y_min = signed_height, y_max = 0;
     ref_x = ref_x * getTranslatedCoords[orientation][0];
     ref_y = ref_y * getTranslatedCoords[orientation][1];
-    
+
     ref_x = (getTranslatedCoords[orientation][0] < 0)?(ref_x - 1):(ref_x);
     ref_y = (getTranslatedCoords[orientation][1] < 0)?(ref_y + 1):(ref_y);
-    
+
     if(getTranslatedCoords[orientation][2] == 1){
         int temp = ref_x;
         ref_x = ref_y;
@@ -140,8 +150,8 @@ void erase(unsigned char *rendered_frame, int x_min, int x_max, int y_min, int y
 }
 void implementation_driver(struct kv *sensor_values, int sensor_values_count, unsigned char *frame_buffer,
                            unsigned int width, unsigned int height, bool grading_mode) {
-    
-    //Orientations: 0 : 01    1: 10     2: 23       3: 32       4: 02    5: 20      6: 31       7: 13   
+
+    //Orientations: 0 : 01    1: 10     2: 23       3: 32       4: 02    5: 20      6: 31       7: 13
 //                  23       32        01          10          13       31         20          02
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
@@ -158,16 +168,6 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
         {2,1,4,5,7},
         {0,3,5,4,6}
         };
-    int itr_dir[8][3] = {
-        {1,1,1},
-        {-1,1,1},
-        {1,-1,1},
-        {-1,-1,1},
-        {1,1,0},
-        {-1,1,0},
-        {-1,-1,0},
-        {1,-1,0}
-    };
 
 //X direction move multiply with 0,2
 //Y direction move multiply with 1,3
@@ -175,7 +175,7 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
 //         90   -90   180   MX    MY
     register int translated_x = 0;
     register int translated_y = 0;
-    unsigned char* rendered_frame = allocateFrame(width, height); 
+    unsigned char* rendered_frame = allocateFrame(width, height);
     memset(rendered_frame,0xff,width * height * 3);
     int processed_frames = 0;
 //    printf("%d\n",sensor_values_count);
@@ -215,11 +215,11 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
                         translated_y = temp;
                         orientation = states[orientation][1];
                     }
-            }            
+            }
         processed_frames += 1;
         if (processed_frames % 25 == 0) {
-            doTranslation(frame_buffer, rendered_frame, height, width, orientation, translated_x, translated_y,itr_dir,&x_l,&x_h,&y_l,&y_h);
-            verifyFrame(rendered_frame, width, height, grading_mode);    
+            doTranslation(frame_buffer, rendered_frame, height, width, orientation, translated_x, translated_y);
+            verifyFrame(rendered_frame, width, height, grading_mode);
             memset(rendered_frame,0xff,width * height * 3);
             //erase(rendered_frame,x_l,x_h,y_l,y_h,width);
         }
