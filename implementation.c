@@ -106,42 +106,151 @@ int translated_x, int translated_y){
         ref_x--;
         ref_y++;
     }
-    
+
     ref_x += translated_x;
     ref_y += translated_y;
-    
+
     ref_x +=  (signed_width/2);
     ref_y = -ref_y + (signed_height/2);
-    
+
     step_x = itr_dir[orientation][0];
     step_y = itr_dir[orientation][1];
-    
+
     c_x = ref_x;
     c_y = ref_y;
-    
-            
-    
+
+
+    int T = width < 160 ? 1: 160;
+    // int T = 1;
+    int tile_offset = width % T;
+    int fitting_width = width - tile_offset;
+    int fitting_height = height - tile_offset;
+    int triple_width = width * 3;
+
     if(itr_dir[orientation][2] == 1){
-        for(int i = 0; i < width; i++){
+        int y_width_val = 0;
+        int b_f_width_val = 0;
+       /*Handle the first tiled ones
+        for(int i = 0; i < width; i ++){
             c_y = ref_y + i * step_y;
+            if (c_y < 0 || c_y >= height)
+                continue;
+            y_width_val = c_y * triple_width;
+            b_f_width_val = i * triple_width;
             for(int j =0; j < height; j++){
                 c_x = ref_x + j * step_x;
-                if(c_x >= 0 && c_x < width &&c_y >= 0 && c_y < height){
-                    memcpy(rendered_frame + c_y * width * 3 + c_x * 3, frame_buffer + i * width * 3 + j * 3 ,3);
+                if(c_x >= 0 && c_x < width){
+                    int pos_f_b =  b_f_width_val + j * 3;
+                    int pos_r_f = y_width_val + c_x * 3;
+                    memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
+                    // rendered_frame[pos_r_f] = frame_buffer[pos_f_b];
+                    // rendered_frame[pos_r_f + 1] = frame_buffer[pos_f_b + 1];
+                    // rendered_frame[pos_r_f + 2] = frame_buffer[pos_f_b + 2];
+                }
+            }
+        } */
+        for (int i = 0; i < fitting_width; i +=T)
+           for (int j = 0; j < fitting_height; j += T)
+             for (int i1 = i; i1 < i + T; i1++) {
+                    c_y = ref_y + i1 * step_y;
+                    if (c_y < 0 || c_y >= height)
+                        continue;
+                    y_width_val = c_y * triple_width;
+                    b_f_width_val = i1 * triple_width;
+                    for (int j1 = j; j1 < j + T; j1++) {
+                        c_x = ref_x + j1 * step_x;
+                        if(c_x >= 0 && c_x < width){
+                            int pos_f_b =  b_f_width_val + j1 * 3;
+                            int pos_r_f = y_width_val + c_x * 3;
+                            // rendered_frame[pos_r_f] = frame_buffer[pos_f_b];
+                            // rendered_frame[pos_r_f + 1] = frame_buffer[pos_f_b + 1];
+                            // rendered_frame[pos_r_f + 2] = frame_buffer[pos_f_b + 2];
+                            memcpy( rendered_frame +pos_r_f, frame_buffer + pos_f_b, 3);
+                        }
+                    }
+                }
+         /* The rest should all fit into the cache */
+        for (int i = width - tile_offset; i < width; i++){
+            c_y = ref_y + i * step_y;
+            if (c_y < 0 || c_y >= height)
+                continue;
+            y_width_val = c_y * triple_width;
+            b_f_width_val = i * triple_width;
+            for(int j = height - tile_offset; j < height; j++){
+                c_x = ref_x + j * step_x;
+                if(c_x >= 0 && c_x < width){
+                    int pos_f_b =  b_f_width_val + j * 3;
+                    int pos_r_f = y_width_val + c_x * 3;
+                    memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
                 }
             }
         }
+
+
     }else{
-        for(int i = 0; i < width; i++){
+        /* int x_width_val = 0;
+        int b_f_width_val = 0;
+        int triple_width = width * 3;
+          for(int i = 0; i < width; i ++){
             c_x = ref_x + i * step_x;
+            if (c_x < 0 || c_x >= height)
+                continue;
+            x_width_val = c_x * 3;
+
+            b_f_width_val = i * triple_width;
             for(int j =0; j < height; j++){
                 c_y = ref_y + j * step_y;
-                if(c_x >= 0 && c_x < width &&c_y >= 0 && c_y < height){
-                    memcpy(rendered_frame + c_y * width * 3 + c_x * 3, frame_buffer + i * width * 3 + j * 3 ,3);
+                if(c_y >= 0 && c_y < height){
+                    int pos_f_b =  b_f_width_val + j * 3;
+                    int pos_r_f = x_width_val + c_y * triple_width;
+                    memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
+                    // rendered_frame[pos_r_f] = frame_buffer[pos_f_b];
+                    // rendered_frame[pos_r_f + 1] = frame_buffer[pos_f_b + 1];
+                    // rendered_frame[pos_r_f + 2] = frame_buffer[pos_f_b + 2];
+                }
+            }
+        } */
+        int x_val = 0;
+        int b_f_width_val = 0;
+        for(int i = 0; i < fitting_width; i+=T)
+            for (int j = 0; j < fitting_height; j+= T)
+                for (int i1 = i; i1 < i + T; i1 ++) {
+                    c_x = ref_x + i1 * step_x;
+                    if (c_x < 0 || c_x >= width)
+                        continue;
+                    x_val = c_x * 3;
+                    b_f_width_val = i1 * triple_width;
+                    for(int j1 = j; j1 < j + T; j1++){
+                        c_y = ref_y + j1 * step_y;
+                        if(c_y >= 0 && c_y < height){
+                            int pos_f_b =  b_f_width_val + j1 * 3;
+                            int pos_r_f = x_val + c_y * triple_width;
+                            // rendered_frame[pos_r_f] = frame_buffer[pos_f_b];
+                            // rendered_frame[pos_r_f + 1] = frame_buffer[pos_f_b + 1];
+                            // rendered_frame[pos_r_f + 2] = frame_buffer[pos_f_b + 2];
+                            memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
+                    }
+                }
+         }
+
+        for (int i = width - tile_offset; i < width; i ++) {
+            c_x = ref_x + i * step_x;
+            if (c_x < 0 || c_x >= width)
+                continue;
+            x_val = c_x * 3;
+            b_f_width_val = i * triple_width;
+            for(int j = height - tile_offset; j < height; j++){
+                c_y = ref_y + j * step_y;
+                if(c_y >= 0 && c_y < height){
+                    int pos_f_b =  b_f_width_val + j * 3;
+                    int pos_r_f = x_val + c_y * triple_width;
+                // rendered_frame[pos_r_f] = frame_buffer[pos_f_b];
+                // rendered_frame[pos_r_f + 1] = frame_buffer[pos_f_b + 1];
+                // rendered_frame[pos_r_f + 2] = frame_buffer[pos_f_b + 2];
+                    memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
                 }
             }
         }
-        
     }
 }
 void erase(unsigned char *rendered_frame, int x_min, int x_max, int y_min, int y_max, int width){
