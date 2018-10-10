@@ -88,6 +88,7 @@ void translateCoords(int translated_x, int translated_y, int* refs, int offset, 
 
 void copyAndDraw(int x_start, int x_end, int y_start, int y_end, int step_x, int step_y, unsigned char* rendered_frame, unsigned char* frame_buffer,int c_x, int c_y, int ref_x, int ref_y,unsigned int width,int orientation){
     int T = width < 160 ? 1: 160;
+    unsigned char white = (unsigned char)255;
     int tile_offset_y = (y_end - y_start) % T;
     int tile_offset_x = (x_end - x_start) % T;
     int fitting_width = y_end - tile_offset_y;
@@ -106,6 +107,7 @@ void copyAndDraw(int x_start, int x_end, int y_start, int y_end, int step_x, int
                         c_x = ref_x + j1 * step_x;            
                             int pos_f_b =  b_f_width_val + j1 * 3;
                             int pos_r_f = y_width_val + c_x * 3;
+                            if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
                             memcpy( rendered_frame +pos_r_f, frame_buffer + pos_f_b, 3);                  
                     }
                 }
@@ -118,6 +120,7 @@ void copyAndDraw(int x_start, int x_end, int y_start, int y_end, int step_x, int
                 c_x = ref_x + j * step_x;
                     int pos_f_b =  b_f_width_val + j * 3;
                     int pos_r_f = y_width_val + c_x * 3;
+                    if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
                     memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
             }
         }
@@ -136,6 +139,7 @@ void copyAndDraw(int x_start, int x_end, int y_start, int y_end, int step_x, int
                         c_y = ref_y + j1 * step_y;
                             int pos_f_b =  b_f_width_val + j1 * 3;
                             int pos_r_f = x_val + c_y * triple_width;
+                            if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
                             memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
                 }
          }
@@ -148,6 +152,7 @@ void copyAndDraw(int x_start, int x_end, int y_start, int y_end, int step_x, int
                 c_y = ref_y + j * step_y;
                     int pos_f_b =  b_f_width_val + j * 3;
                     int pos_r_f = x_val + c_y * triple_width;
+                    if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
                     memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
             }
         }
@@ -316,9 +321,8 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
     register int translated_x = 0;
     register int translated_y = 0;
     int top_y = (int)height/2, left_x = -(int)width/2;
-    unsigned char* orientation_pointers[8] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}; 
-    unsigned char* canvas_pointers[8] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}; 
-    
+    unsigned char * rendered_frame = NULL;
+    rendered_frame = allocateFrame(width, height);
     memset(rendered_frame,0xff,width * height * 3);
     int processed_frames = 0;
 //    printf("%d\n",sensor_values_count);
@@ -359,11 +363,6 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
                         orientation = states[orientation][1];
                     }
             }
-        if(orientation_pointers[orientation] == NULL){
-            canvas_pointers[orientation] = allocateFrame(height * 3, width * 3);
-            orientation_pointers[orientation] = canvas_pointers[orientation] + height * width * 3;
-            createOrientation(orientation,orientation_pointers);
-        }
         processed_frames += 1;
         if (processed_frames % 25 == 0) {
             refs[0] = left_x;
