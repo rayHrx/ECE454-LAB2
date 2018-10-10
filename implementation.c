@@ -116,17 +116,22 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
 //         90   -90   180   MX    MY
     register int translated_x = 0;
     register int translated_y = 0;
-    int top_y = (int)height/2, left_x = -(int)width/2;
     
     unsigned char* orientation_pointers[8] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}; 
-    unsigned char* canvas_pointers[8] = {NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}; 
+    unsigned char* canvas_pointer = NULL;
     unsigned char* test_frame = NULL;
     
-    for(int i = 0; i < 8; i++){
-          canvas_pointers[i] = allocateFrame(height * 3, width * 3);
-          orientation_pointers[i] = canvas_pointers[i] + height * width * 3;
-          memset(canvas_pointers[i],0xff,height * 3 * width * 3 * 3);
-    } 
+    canvas_pointer = allocateFrame(height,width * 17);
+    memset(canvas_pointer,0xff,height * width * 3 * 17);
+    orientation_pointers[0] = canvas_pointer + (height * width * 3);
+    orientation_pointers[1] = canvas_pointer + (height * width * 3 * 3);
+    orientation_pointers[2] = canvas_pointer + (height * width * 3 * 5);
+    orientation_pointers[3] = canvas_pointer + (height * width * 3 * 7);
+    orientation_pointers[4] = canvas_pointer + (height * width * 3 * 9);
+    orientation_pointers[5] = canvas_pointer + (height * width * 3 * 11);
+    orientation_pointers[6] = canvas_pointer + (height * width * 3 * 13);
+    orientation_pointers[7] = canvas_pointer + (height * width * 3 * 15);
+    
     
     struct direct_info directions[8];
     directions[0].outer_step = width * 3;
