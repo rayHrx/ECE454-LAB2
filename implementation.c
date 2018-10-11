@@ -27,6 +27,7 @@
         {-1,-1,0},
         {1,-1,0}
     };
+    int colored_points[5001 * 5001][2];
 void print_team_info(){
     // Please modify this field with something interesting
     char team_name[] = "BELL388";
@@ -86,213 +87,21 @@ void translateCoords(int translated_x, int translated_y, int* refs, int offset, 
     
 }
 
-void copyAndDraw(int x_start, int x_end, int y_start, int y_end, int step_x, int step_y, unsigned char* rendered_frame, unsigned char* frame_buffer,int c_x, int c_y, int ref_x, int ref_y,unsigned int width,int orientation){
-    int T = width < 160 ? 1: 160;
-    unsigned char white = (unsigned char)255;
-    int tile_offset_y = (y_end - y_start) % T;
-    int tile_offset_x = (x_end - x_start) % T;
-    int fitting_width = y_end - tile_offset_y;
-    int fitting_height = x_end - tile_offset_x;
-    int triple_width = width * 3;
-    if(itr_dir[orientation][2] == 1){
-        int y_width_val = 0;
-        int b_f_width_val = 0;
-        for (int i = y_start; i < fitting_width; i +=T)
-           for (int j = x_start; j < fitting_height; j += T)
-             for (int i1 = i; i1 < i + T; i1++) {
-                    c_y = ref_y + i1 * step_y;
-                    y_width_val = c_y * triple_width;
-                    b_f_width_val = i1 * triple_width;
-                    for (int j1 = j; j1 < j + T; j1++) {
-                        c_x = ref_x + j1 * step_x;            
-                            int pos_f_b =  b_f_width_val + j1 * 3;
-                            int pos_r_f = y_width_val + c_x * 3;
-                            if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
-                            memcpy( rendered_frame +pos_r_f, frame_buffer + pos_f_b, 3);                  
-                    }
-                }
-         /* The rest should all fit into the cache */
-        for (int i = y_end - tile_offset_y; i < y_end; i++){
-            c_y = ref_y + i * step_y;
-            y_width_val = c_y * triple_width;
-            b_f_width_val = i * triple_width;
-            for(int j = x_end - tile_offset_x; j < x_end; j++){
-                c_x = ref_x + j * step_x;
-                    int pos_f_b =  b_f_width_val + j * 3;
-                    int pos_r_f = y_width_val + c_x * 3;
-                    if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
-                    memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
-            }
-        }
-
-
-    }else{
-        int x_val = 0;
-        int b_f_width_val = 0;
-        for(int i = y_start; i < fitting_width; i+=T)
-            for (int j = x_start; j < fitting_height; j+= T)
-                for (int i1 = i; i1 < i + T; i1 ++) {
-                    c_x = ref_x + i1 * step_x;
-                    x_val = c_x * 3;
-                    b_f_width_val = i1 * triple_width;
-                    for(int j1 = j; j1 < j + T; j1++){
-                        c_y = ref_y + j1 * step_y;
-                            int pos_f_b =  b_f_width_val + j1 * 3;
-                            int pos_r_f = x_val + c_y * triple_width;
-                            if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
-                            memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
-                }
-         }
-
-        for (int i = y_end - tile_offset_y; i < y_end; i ++) {
-            c_x = ref_x + i * step_x;
-            x_val = c_x * 3;
-            b_f_width_val = i * triple_width;
-            for(int j = x_end - tile_offset_x; j < x_end; j++){
-                c_y = ref_y + j * step_y;
-                    int pos_f_b =  b_f_width_val + j * 3;
-                    int pos_r_f = x_val + c_y * triple_width;
-                    if(frame_buffer[pos_f_b] != white || frame_buffer[pos_f_b + 1] != white || frame_buffer[pos_f_b + 2] != white)
-                    memcpy(rendered_frame + pos_r_f, frame_buffer + pos_f_b, 3);
-            }
-        }
-    }
+void copyAndDraw(unsigned char* rendered_frame, unsigned char* buffer_frame, int orientation, int offset, int counter, int width, int translated_x,int translated_y){
+    int refs[2];
+    int x = 0, y = 0;
+    for(int i = 0; i < counter; i++){
+        x = colored_points[i][0];
+        y = colored_points[i][1];
+        refs[0] = x;
+        refs[1] = y;
+        translateCoords(translated_x,translated_y,refs,offset,orientation);
+        x +=  offset;
+        y = -y + offset;
+        memcpy(rendered_frame + refs[1] * width * 3 + refs[0] * 3, buffer_frame + y * width * 3 + x * 3, 3);
+    }    
 }
 
-void doTranslation(unsigned char *frame_buffer, unsigned char *rendered_frame, unsigned width, unsigned height, unsigned int orientation, int ref_x, int ref_y){
-    int signed_width = (int)width, signed_height = (int)height;
-    int c_x = 0, c_y = 0, step_x = 0, step_y = 0;
-    int x_start = 0, y_start = 0, x_end = width, y_end = height; 
-    
-    step_x = itr_dir[orientation][0];
-    step_y = itr_dir[orientation][1];
-    
-    c_x = ref_x;
-    c_y = ref_y;
-    switch(orientation){
-        case 0:
-            if(c_x < 0){
-                x_start -= c_x;
-                c_x = 0;
-            }else{
-                x_end -= c_x;
-            }
-            if(c_y < 0){
-                y_start -= c_y;
-                c_y = 0;
-            }else{
-                y_end -= c_y;
-            }
-            break;
-        case 1:    
-            if(c_x >= signed_width){
-                x_start += (c_x - signed_width + 1); 
-                c_x = signed_width -1;
-            }else{
-                x_end -= (signed_width - 1 - c_x);
-            }
-            if(c_y < 0){
-                y_start -= c_y;
-                c_y = 0;
-            }else{
-                y_end -= c_y;
-            }          
-            break;
-        case 2:
-            if(c_x < 0){
-                x_start -= c_x;
-                c_x = 0;
-            }else{
-                x_end -= c_x;
-            }
-            if(c_y >= signed_height){
-                y_start += (c_y - signed_height + 1);
-                c_y = signed_height - 1;
-            }else{
-                y_end -= (signed_height - 1 - c_y);
-            }  
-            break;    
-        case 3:
-            if(c_x >= signed_width){
-                x_start += (c_x - signed_width + 1); 
-                c_x = signed_width -1;
-            }else{
-                x_end -= (signed_width - 1 - c_x);
-            }
-            if(c_y >= signed_height){
-                y_start += (c_y - signed_height + 1);
-                c_y = signed_height - 1;
-            }else{
-                y_end -= (signed_height - 1 - c_y);
-            }  
-            break;
-        case 4:
-            if(c_y < 0){
-                x_start -= c_y;
-                c_y = 0;
-            }else{
-                x_end -= c_y; 
-            }
-            if(c_x < 0){
-                y_start -= c_x;
-                c_x = 0;
-            }else{
-                y_end -= c_x;
-            }
-            break;
-        case 5:
-            if(c_y < 0){
-                x_start -= c_y;
-                c_y = 0;
-            }else{
-                x_end -= c_y; 
-            }
-            if(c_x >= signed_width){
-                y_start += (c_x - signed_width + 1);
-                c_x = signed_width - 1;
-            }else{
-                y_end -= (signed_width - 1 - c_x);
-            }
-            break;
-        case 6:
-            if(c_y >= signed_height){
-                x_start += (c_y - signed_height + 1);
-                c_y = signed_height - 1;
-            }else{
-                x_end -= (signed_height - 1 - c_y);
-            }
-            if(c_x >= signed_width){
-                y_start += (c_x - signed_width + 1);
-                c_x = signed_width - 1;
-            }else{
-                y_end -= (signed_width - 1 - c_x);
-            }
-            break;
-        case 7:
-             if(c_y >= signed_height){
-                x_start += (c_y - signed_height + 1);
-                c_y = signed_height - 1;
-            }else{
-                x_end -= (signed_height - 1 - c_y);
-            }
-            if(c_x < 0){
-                y_start -= c_x;
-                c_x = 0;
-            }else{
-                y_end -= c_x;
-            }
-            break;    
-    }       
-    copyAndDraw(x_start,x_end,y_start,y_end,step_x,step_y,rendered_frame,frame_buffer,c_x,c_y,ref_x,ref_y,width,orientation);
-}
-
-//void erase(unsigned char *rendered_frame, int x_min, int x_max, int y_min, int y_max, int width){
-//    for(int i = y_min; i < y_max; i++){
-//            for(int j = x_min; j < x_max; j++){
-//                memcpy(rendered_frame + i * width * 3 + j * 3,0xff,3);
-//            }
-//    }
-//}
 void implementation_driver(struct kv *sensor_values, int sensor_values_count, unsigned char *frame_buffer,
                            unsigned int width, unsigned int height, bool grading_mode) {
     
@@ -301,9 +110,11 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
     int refs[2];
-    int x_d = width/2, y_d = height/2;
-    int x_l = 0, x_h = 0, y_l = 0, y_h = 0;
     register unsigned int orientation = 0;
+    int counter = 0;
+    unsigned char white = (unsigned char)255;
+    int signed_width = (int)width;
+    int signed_height = (int)height;
     unsigned int states[8][5] = {
         {5,7,3,2,1},
         {6,4,2,3,0},
@@ -314,18 +125,33 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
         {2,1,4,5,7},
         {0,3,5,4,6}
         };
+  
 //X direction move multiply with 0,2
 //Y direction move multiply with 1,3
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
     register int translated_x = 0;
     register int translated_y = 0;
-    int top_y = (int)height/2, left_x = -(int)width/2;
+    int x_f = -1, y_f = -1;
+    for(int j = signed_height/2; j > -signed_height/2 ; j--){
+        y_f++;
+        x_f = -1;
+        for(int i = -signed_width/2; i < signed_width/2; i++){
+            x_f++;
+            int pos =  y_f * width * 3 + 3 * x_f; 
+            if(frame_buffer[pos] != white || frame_buffer[pos + 1] != white || frame_buffer[pos + 2] != white){
+                colored_points[counter][0] = i;
+                colored_points[counter][1] = j;
+                counter++;
+            }
+                  
+        }
+    }
+    
     unsigned char * rendered_frame = NULL;
     rendered_frame = allocateFrame(width, height);
     memset(rendered_frame,0xff,width * height * 3);
     int processed_frames = 0;
-//    printf("%d\n",sensor_values_count);
         for (int sensorValueIdx = 0; sensorValueIdx < sensor_values_count; sensorValueIdx++) {
              int value = sensor_values[sensorValueIdx].value;
             if(!strcmp(sensor_values[sensorValueIdx].key, "W")){
@@ -365,13 +191,9 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
             }
         processed_frames += 1;
         if (processed_frames % 25 == 0) {
-            refs[0] = left_x;
-            refs[1] = top_y;
-            translateCoords(translated_x,translated_y,refs,top_y,orientation);
-            doTranslation(frame_buffer, rendered_frame, height, width, orientation,refs[0],refs[1]);
+            copyAndDraw(rendered_frame,frame_buffer,orientation,width/2,counter,width,translated_x,translated_y);
             verifyFrame(rendered_frame, width, height, grading_mode);    
             memset(rendered_frame,0xff,width * height * 3);
-            //erase(rendered_frame,x_l,x_h,y_l,y_h,width);
         }
     }
     return;
