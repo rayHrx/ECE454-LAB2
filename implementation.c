@@ -27,10 +27,11 @@
         {-1,-1,0},
         {1,-1,0}
     };
-    int colored_points[5001 * 5001][2];
+    int* colored_points;
+    unsigned char* colors;
 void print_team_info(){
     // Please modify this field with something interesting
-    char team_name[] = "BELL388";
+    char team_name[] = "my soul is gone";
 
     // Please fill in your information
     char student1_first_name[] = "Ruixin";
@@ -55,50 +56,67 @@ void print_team_info(){
     printf("\tstudent2_student_number: %s\n", student2_student_number);
 }
 
-void translateCoords(int translated_x, int translated_y, int* refs, int offset, unsigned int orientation){
-    int ref_x = 0, ref_y = 0;
- 
-    ref_x = refs[0] * getTranslatedCoords[orientation][0];
-    ref_y = refs[1] * getTranslatedCoords[orientation][1];
-    
-    if(getTranslatedCoords[orientation][0] < 0){
-        ref_x--;
-    }
-    if(getTranslatedCoords[orientation][1] < 0){
-        ref_y++;
-    }
-    
-    if(getTranslatedCoords[orientation][2] == 1){
-        int temp = ref_x;
-        ref_x = ref_y;
-        ref_y = temp;
-        ref_x--;
-        ref_y++;
-    }
-    
-    ref_x += translated_x;
-    ref_y += translated_y;
-    
-    ref_x +=  offset;
-    ref_y = -ref_y + offset;
-    
-    refs[0] = ref_x;
-    refs[1] = ref_y;
-    
-}
+//void translateCoords(int translated_x, int translated_y, int* refs, int offset, unsigned int orientation){
+//    int ref_x = 0, ref_y = 0;
+// 
+//    ref_x = refs[0] * getTranslatedCoords[orientation][0];
+//    ref_y = refs[1] * getTranslatedCoords[orientation][1];
+//    
+//    if(getTranslatedCoords[orientation][0] < 0){
+//        ref_x--;
+//    }
+//    if(getTranslatedCoords[orientation][1] < 0){
+//        ref_y++;
+//    }
+//    
+//    if(getTranslatedCoords[orientation][2] == 1){
+//        int temp = ref_x;
+//        ref_x = ref_y;
+//        ref_y = temp;
+//        ref_x--;
+//        ref_y++;
+//    }
+//    
+//    ref_x += translated_x;
+//    ref_y += translated_y;
+//    
+//    ref_x +=  offset;
+//    ref_y = -ref_y + offset;
+//    
+//    refs[0] = ref_x;
+//    refs[1] = ref_y;
+//    
+//}
 
-void copyAndDraw(unsigned char* rendered_frame, unsigned char* buffer_frame, int orientation, int offset, int counter, int width, int translated_x,int translated_y){
-    int refs[2];
-    int x = 0, y = 0;
-    for(int i = 0; i < counter; i++){
-        x = colored_points[i][0];
-        y = colored_points[i][1];
-        refs[0] = x;
-        refs[1] = y;
-        translateCoords(translated_x,translated_y,refs,offset,orientation);
-        x +=  offset;
-        y = -y + offset;
-        memcpy(rendered_frame + refs[1] * width * 3 + refs[0] * 3, buffer_frame + y * width * 3 + x * 3, 3);
+void copyAndDraw(unsigned char* buffer_frame, int orientation, int offset, int counter, int width, int translated_x,int translated_y){
+    int ref_x = 0, ref_y = 0;
+    for(int i = 0; i < counter; i += 2){
+         
+        ref_x = colored_points[i] * getTranslatedCoords[orientation][0];
+        ref_y = colored_points[i + 1] * getTranslatedCoords[orientation][1];
+    
+        if(getTranslatedCoords[orientation][0] < 0){
+            ref_x--;
+        }
+        if(getTranslatedCoords[orientation][1] < 0){
+            ref_y++;
+        }
+    
+        if(getTranslatedCoords[orientation][2] == 1){
+            int temp = ref_x;
+            ref_x = ref_y;
+            ref_y = temp;
+            ref_x--;
+            ref_y++;
+        }
+    
+        ref_x += translated_x;
+        ref_y += translated_y;
+    
+        ref_x +=  offset;
+        ref_y = -ref_y + offset; 
+        
+        memcpy(buffer_frame + ref_y * width * 3 + ref_x * 3, colors + (i/2) * 3, 3);
     }    
 }
 
@@ -109,7 +127,8 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
 //                  23       32        01          10          13       31         20          02
 //Actions: 0    1     2     3     4
 //         90   -90   180   MX    MY
-    int refs[2];
+    colored_points = (int *)malloc(height * width * sizeof(int) * 2);
+    colors = (unsigned char*)malloc(height * width * 3);
     register unsigned int orientation = 0;
     int counter = 0;
     unsigned char white = (unsigned char)255;
@@ -140,17 +159,15 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
             x_f++;
             int pos =  y_f * width * 3 + 3 * x_f; 
             if(frame_buffer[pos] != white || frame_buffer[pos + 1] != white || frame_buffer[pos + 2] != white){
-                colored_points[counter][0] = i;
-                colored_points[counter][1] = j;
-                counter++;
+                colored_points[counter] = i;
+                colored_points[counter + 1] = j;
+                memcpy(colors + (counter/2) * 3, frame_buffer + pos,3);
+                counter += 2;
             }
                   
         }
     }
-    
-    unsigned char * rendered_frame = NULL;
-    rendered_frame = allocateFrame(width, height);
-    memset(rendered_frame,0xff,width * height * 3);
+    memset(frame_buffer,0xff,width * height * 3);
     int processed_frames = 0;
         for (int sensorValueIdx = 0; sensorValueIdx < sensor_values_count; sensorValueIdx++) {
              int value = sensor_values[sensorValueIdx].value;
@@ -191,9 +208,9 @@ void implementation_driver(struct kv *sensor_values, int sensor_values_count, un
             }
         processed_frames += 1;
         if (processed_frames % 25 == 0) {
-            copyAndDraw(rendered_frame,frame_buffer,orientation,width/2,counter,width,translated_x,translated_y);
-            verifyFrame(rendered_frame, width, height, grading_mode);    
-            memset(rendered_frame,0xff,width * height * 3);
+            copyAndDraw(frame_buffer,orientation,width/2,counter,width,translated_x,translated_y);
+            verifyFrame(frame_buffer, width, height, grading_mode);    
+            memset(frame_buffer,0xff,width * height * 3);
         }
     }
     return;
